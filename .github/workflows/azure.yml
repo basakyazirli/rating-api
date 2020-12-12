@@ -10,9 +10,9 @@ on: push
 # 2. Change these variables for your configuration:
 env:
   AZURE_WEBAPP_NAME: ratings-dev   # set this to your application's name
-  CONTAINER_REGISTRY: ratings.azurecr.io   # set secret with Container Registry URL, example : xyz.azurecr.io 
- # AZURE_RESOURCE_GROUP: rg-ratings   # set this to your Azure Resource group's name - Needed only if you are provisioning the app in the workflow
- # AZURE_APP_PLAN: ActionPlan  # set this to your App service plan's name - Needed only if you are provisioning the app in the workflow
+  CONTAINER_REGISTRY: ${{ secrets.REGISTRY_URL }}  # set secret with Container Registry URL, example : xyz.azurecr.io 
+# AZURE_RESOURCE_GROUP: ActionsDemo   # set this to your Azure Resource group's name - Needed only if you are provisioning the app in the workflow
+# AZURE_APP_PLAN: ActionPlan  # set this to your App service plan's name - Needed only if you are provisioning the app in the workflow
   
 jobs:
   build-and-deploy-to-dev:
@@ -32,37 +32,37 @@ jobs:
     - name: ACR authentication
       uses: azure/docker-login@v1
       with:
-        login-server: ratings.azurecr.io
-        username: ratingsacr
-        password: NXQdVc9BLYoFTtHzHGS7GLL2T9x/0wBi 
+        login-server: ${{ env.CONTAINER_REGISTRY }}
+        username: ${{ secrets.REGISTRY_USERNAME }}
+        password: ${{ secrets.REGISTRY_PASSWORD }}    
     - name: Docker Build & Push to ACR
       run: |
-        docker build . -t ratings.azurecr.io/nodejsapp:${{ github.sha }}
-        docker push ratings.azurecr.io/nodejsapp:${{ github.sha }} 
+        docker build . -t ${{ env.CONTAINER_REGISTRY }}/nodejsapp:${{ github.sha }}
+        docker push ${{ env.CONTAINER_REGISTRY }}/nodejsapp:${{ github.sha }} 
 
 # Uncomment the below action snippet if the Web app credentials are not updated as web app settings
-#     - name: Set Web App ACR authentication
-#       uses: Azure/appservice-settings@v1
-#       with:
-#         app-name: ${{ env.AZURE_WEBAPP_NAME }} 
-#         app-settings-json: |
-#           [
-#               {
-#                   "name": "DOCKER_REGISTRY_SERVER_PASSWORD",
-#                   "value": "${{ secrets.REGISTRY_PASSWORD }}",
-#                   "slotSetting": false
-#               },
-#               {
-#                   "name": "DOCKER_REGISTRY_SERVER_URL",
-#                   "value": "https://${{ env.CONTAINER_REGISTRY }}",
-#                   "slotSetting": false
-#               },
-#               {
-#                   "name": "DOCKER_REGISTRY_SERVER_USERNAME",
-#                   "value": "${{ secrets.REGISTRY_USERNAME  }}",
-#                   "slotSetting": false
-#               }
-#           ]
+    - name: Set Web App ACR authentication
+      uses: Azure/appservice-settings@v1
+      with:
+         app-name: ${{ env.AZURE_WEBAPP_NAME }} 
+         app-settings-json: |
+           [
+               {
+                   "name": "DOCKER_REGISTRY_SERVER_PASSWORD",
+                   "value": "${{ secrets.REGISTRY_PASSWORD }}",
+                   "slotSetting": false
+               },
+               {
+                   "name": "DOCKER_REGISTRY_SERVER_URL",
+                   "value": "https://${{ env.CONTAINER_REGISTRY }}",
+                   "slotSetting": false
+               },
+               {
+                   "name": "DOCKER_REGISTRY_SERVER_USERNAME",
+                   "value": "${{ secrets.REGISTRY_USERNAME  }}",
+                   "slotSetting": false
+               }
+           ]
 
     - name: 'Deploy to Azure Web App for Container'
       uses: azure/webapps-deploy@v2
